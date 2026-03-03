@@ -1,7 +1,7 @@
 import SwiftUI
 
-// todo: jangan lupa lupa register recap view in app module
 struct RecapView: View {
+    @EnvironmentObject private var coordinator: AppCoordinator
     let summary: RecapSummary
 
     // MARK: - Formatting Helpers
@@ -64,10 +64,14 @@ struct RecapView: View {
                     statsSection
                     dateSection
                     motivationSection
+                    backToHomeButton
                 }
                 .padding()
             }
         }
+        .navigationTitle("Recap")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
     }
 
     // MARK: - Sections
@@ -156,7 +160,22 @@ struct RecapView: View {
             .font(.callout.italic())
             .foregroundStyle(.white.opacity(0.6))
             .multilineTextAlignment(.center)
-            .padding(.bottom, 16)
+            .padding(.bottom, 8)
+    }
+    
+    private var backToHomeButton: some View {
+        Button {
+            coordinator.popToRoot()
+        } label: {
+            Text("Back to Home")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(.orange)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .padding(.bottom, 16)
     }
 }
 
