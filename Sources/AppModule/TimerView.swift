@@ -31,6 +31,7 @@ struct TimerView: View {
     
     // logging current session
     @State private var currentSessionLogId: UUID? = nil
+    @State private var runStartDate: Date = Date()
     
     // ✅ skip break confirm
     @State private var showSkipBreakConfirm: Bool = false
@@ -76,6 +77,7 @@ struct TimerView: View {
                     title: popupTitle(),
                     subtitle: popupSubtitle(),
                     canContinue: timeRemaining <= 0 && timerAction != .play,
+                    buttonLabel: transitionTarget == nil ? "View Recap" : "Continue",
                     onContinue: { continueAfterFinish() }
                 )
                 .transition(.scale.combined(with: .opacity))
@@ -84,6 +86,7 @@ struct TimerView: View {
         .navigationTitle("PomoDo")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            runStartDate = Date()
             startSession(.focus, autoStart: true)
         }
         .onReceive(ticker) { _ in
@@ -108,7 +111,7 @@ struct TimerView: View {
         .alert("Stop Pomodoro Session?", isPresented: $showStopSessionConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Stop", role: .destructive) {
-                coordinator.pop()
+                stopAndNavigateToRecap()
             }
         } message: {
             Text("Your progress will be saved in the summary.")
@@ -272,9 +275,8 @@ struct TimerView: View {
             completedFocus += 1
             
             if completedFocus >= totalSession {
-                finishedAll = true
-                transitionTarget = nil
-                showTransitionPopup = true
+                // Navigate to recap when all sessions are completed
+                navigateToRecap(isCompleted: true)
                 return
             }
             
@@ -393,6 +395,51 @@ struct TimerView: View {
         }
         
         currentSessionLogId = nil
+    }
+    
+    // MARK: - Recap Navigation
+    
+    private func stopAndNavigateToRecap() {
+        // Stop timer
+        timerAction = .pause
+        endDate = nil
+        showTransitionPopup = false
+        
+        // Finalize any in-progress session log
+        finalizeCurrentSessionLog()
+        
+        // Navigate to recap with isCompleted = false
+        navigateToRecap(isCompleted: false)
+    }
+    
+    private func navigateToRecap(isCompleted: Bool) {
+        let summary = buildRecapSummary(isCompleted: isCompleted)
+        coordinator.pop() // remove TimerView from stack
+        coordinator.push(.recap(summary))
+    }
+    
+    private func buildRecapSummary(isCompleted: Bool) -> RecapSummary {
+        // Filter logs that belong to the current pomodoro run
+        let currentRunLogs = sessionLogs.filter { $0.startAt >= runStartDate }
+        
+        let focusLogs = currentRunLogs.filter {
+            $0.sessionTypeRaw.hasPrefix("Focus")
+        }
+        let breakLogs = currentRunLogs.filter {
+            $0.sessionTypeRaw.hasPrefix("Break")
+        }
+        
+        let totalFocus = focusLogs.compactMap { $0.actualSeconds }.reduce(0, +)
+        let totalBreak = breakLogs.compactMap { $0.actualSeconds }.reduce(0, +)
+        
+        return RecapSummary(
+            totalCycles: completedFocus,
+            totalFocusDuration: totalFocus,
+            totalBreakDuration: totalBreak,
+            totalDuration: totalFocus + totalBreak,
+            completedAt: Date(),
+            isCompleted: isCompleted
+        )
     }
     
     // MARK: - Formatting
