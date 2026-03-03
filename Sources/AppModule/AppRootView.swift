@@ -19,6 +19,10 @@ struct AppRootView: View {
                             breakMinutes: breakMinutes
                         )
                         .environmentObject(coordinator)
+                        
+                    case .recap(let summary):
+                        RecapView(summary: summary)
+                            .environmentObject(coordinator)
                     }
                 }
         }
