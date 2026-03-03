@@ -1,6 +1,6 @@
 import Foundation
 
-struct RecapSummary {
+struct RecapSummary: Hashable {
     let totalCycles: Int
     let totalFocusDuration: Int
     let totalBreakDuration: Int
