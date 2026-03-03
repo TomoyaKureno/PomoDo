@@ -4,6 +4,7 @@ struct TimerTransitionPopup: View {
     let title: String
     let subtitle: String
     let canContinue: Bool
+    var buttonLabel: String = "Continue"
     let onContinue: () -> Void
     
     var body: some View {
@@ -19,7 +20,7 @@ struct TimerTransitionPopup: View {
             Button {
                 onContinue()
             } label: {
-                Text("Continue")
+                Text(buttonLabel)
                     .font(.headline)
                     .frame(maxWidth: .infinity)
             }
