@@ -5,27 +5,46 @@
 //  Created by Academy on 03/03/26.
 //
 
-import Foundation
 import AVFoundation
-import Combine
 
-final class AudioManager: ObservableObject {
-    static let shared = AudioManager()
-    var audioPlayer: AVAudioPlayer?
+@MainActor
+final class SoundManager {
+    static let shared = SoundManager()
+    private var player: AVAudioPlayer?
     
-    func playSound(fileName: String, fileType: String) {
-        if let path = Bundle.main.path(forResource: fileName, ofType: fileType) {
-            let url = URL(fileURLWithPath: path)
-            
-            do {
-                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: .mixWithOthers)
-                try AVAudioSession.sharedInstance().setActive(true)
-                
-                audioPlayer = try AVAudioPlayer(contentsOf: url)
-                audioPlayer?.play()
-            } catch {
-                print("Couldn't load audio file.")  
-            }
+    func setupAudioSession() {
+        // penting untuk background audio
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+        } catch {
+            print("AudioSession error:", error)
+        }
+    }
+    
+    func play(_ name: String, ext: String = "mp3", loop: Bool = false) {
+        guard let url = Bundle.main.url(forResource: name, withExtension: ext) else {
+            print("Sound not found:", name)
+            return
+        }
+        do {
+            player = try AVAudioPlayer(contentsOf: url)
+            player?.numberOfLoops = loop ? -1 : 0
+            player?.prepareToPlay()
+            player?.play()
+        } catch {
+            print("AVAudioPlayer error:", error)
+        }
+    }
+    
+    func stop() { player?.stop() }
+    
+    /// Alarm bunyi 10 detik (loop lalu stop)
+    func playAlarm10Seconds() {
+        play("alarm", loop: true)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
+            self?.stop()
         }
     }
 }

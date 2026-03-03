@@ -8,15 +8,8 @@ enum Session: String, CaseIterable, Identifiable {
     
     var title: String {
         switch self {
-        case .focus: return "Focus"
+        case .focus: return "Focus Time"
         case .breakSession: return "Break"
-        }
-    }
-    
-    var duration: Int {
-        switch self {
-        case .focus: return 25 * 60 * 10
-        case .breakSession: return 5 * 60 * 10
         }
     }
     
@@ -26,4 +19,13 @@ enum Session: String, CaseIterable, Identifiable {
         case .breakSession: return .blue
         }
     }
+    
+    /// durasi session dalam deciseconds (0.1s). Di-set oleh TimerView.
+    var durationDeciseconds: Int {
+        get { _durationDeciseconds[self] ?? 1 }
+        set { _durationDeciseconds[self] = max(1, newValue) }
+    }
 }
+
+// storage sederhana untuk durasi runtime
+private var _durationDeciseconds: [Session: Int] = [:]
