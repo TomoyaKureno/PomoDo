@@ -6,11 +6,8 @@ struct HomeView: View {
     @State private var totalSession: Int = 4
     @State private var isSheetPresent: Bool = false
     
-    @State private var focusMinutes: Int = 25
-    @State private var breakMinutes: Int = 5
-    
-    private var focusSeconds: Int { focusMinutes * 60 }
-    private var breakSeconds: Int { breakMinutes * 60 }
+    @State private var focusSeconds: Int = 25 * 60
+    @State private var breakSeconds: Int = 5 * 60
     
     var body: some View {
         ZStack {
@@ -54,14 +51,14 @@ struct HomeView: View {
                         HStack(spacing: 16) {
                             HStack(spacing: 8) {
                                 Image(systemName: "doc.text.magnifyingglass")
-                                Text("\(formatMinutesSeconds(focusSeconds)) Focus")
+                                Text("\(formatDuration(focusSeconds)) Focus")
                             }
                             .font(.system(size: 14))
                             .foregroundStyle(.white)
                             
                             HStack(spacing: 8) {
                                 Image(systemName: "cup.and.saucer.fill")
-                                Text("\(formatMinutesSeconds(breakSeconds)) Break")
+                                Text("\(formatDuration(breakSeconds)) Break")
                             }
                             .font(.system(size: 14))
                             .foregroundStyle(.white)
@@ -81,11 +78,12 @@ struct HomeView: View {
                     }
                     
                     Button {
-                        coordinator.push(.timer(
-                            totalSession: totalSession,
-                            focusMinutes: focusMinutes,
-                            breakMinutes: breakMinutes
-                        ))
+                        let config = PomodoroConfig(
+                            totalSessions: totalSession,
+                            focusSeconds: focusSeconds,
+                            breakSeconds: breakSeconds
+                        )
+                        coordinator.push(.timer(config))
                     } label: {
                         Text("Start Pomodoro")
                             .font(.system(size: 20, weight: .bold))
@@ -107,9 +105,9 @@ struct HomeView: View {
             .padding()
         }
         .sheet(isPresented: $isSheetPresent) {
-            MinutesPickerSheet(
-                focusMinutes: $focusMinutes,
-                breakMinutes: $breakMinutes,
+            TimePickerSheet(
+                focusSeconds: $focusSeconds,
+                breakSeconds: $breakSeconds,
                 onCancel: { isSheetPresent = false },
                 onSave: { isSheetPresent = false }
             )
@@ -118,9 +116,11 @@ struct HomeView: View {
         }
     }
     
-    private func formatMinutesSeconds(_ seconds: Int) -> String {
+    private func formatDuration(_ seconds: Int) -> String {
         let m = seconds / 60
         let s = seconds % 60
-        return s == 0 ? "\(m)m" : "\(m)m \(s)s"
+        if m > 0 && s > 0 { return "\(m)m \(s)s" }
+        if m > 0 { return "\(m)m" }
+        return "\(s)s"
     }
 }

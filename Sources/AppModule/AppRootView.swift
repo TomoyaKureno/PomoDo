@@ -12,12 +12,8 @@ struct AppRootView: View {
                     case .home:
                         HomeView().environmentObject(coordinator)
                         
-                    case .timer(let totalSession, let focusMinutes, let breakMinutes):
-                        TimerView(
-                            totalSession: totalSession,
-                            focusMinutes: focusMinutes,
-                            breakMinutes: breakMinutes
-                        )
+                    case .timer(let config):
+                        TimerView(config: config)
                         .environmentObject(coordinator)
                     }
                 }

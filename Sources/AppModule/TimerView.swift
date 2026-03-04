@@ -12,9 +12,7 @@ struct TimerView: View {
     
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
     
-    let totalSession: Int
-    let focusMinutes: Int
-    let breakMinutes: Int
+    let config: PomodoroConfig
     
     @State private var currentSession: Session = .focus
     @State private var completedFocus: Int = 0
@@ -32,7 +30,6 @@ struct TimerView: View {
     // logging current session
     @State private var currentSessionLogId: UUID? = nil
     
-    // ✅ skip break confirm
     @State private var showSkipBreakConfirm: Bool = false
     @State private var showStopSessionConfirm: Bool = false
     
@@ -54,7 +51,7 @@ struct TimerView: View {
                         timeRemaining: $timeRemaining,
                         timerAction: $timerAction,
                         onToggle: { toggle() },
-                        onReset: { secondaryButtonTapped() } // ✅ reset/skip
+                        onReset: { secondaryButtonTapped() }
                     )
                     .disabled(showTransitionPopup && timeRemaining <= 0)
                     
@@ -123,8 +120,8 @@ struct TimerView: View {
                 .font(.title.bold())
                 .foregroundStyle(.white)
             
-            let currentIndex = min(completedFocus + (currentSession == .focus ? 1 : 0), totalSession)
-            Text("Session \(currentIndex)/\(totalSession)")
+            let currentIndex = min(completedFocus + (currentSession == .focus ? 1 : 0), config.totalSessions)
+            Text("Session \(currentIndex)/\(config.totalSessions)")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.7))
         }
@@ -198,7 +195,7 @@ struct TimerView: View {
         transitionTarget = nil
         finishedAll = false
         
-        let estimatedSeconds = (session == .focus ? focusMinutes : breakMinutes) * 60
+        let estimatedSeconds = (session == .focus ? config.focusSeconds : config.breakSeconds)
         let durationDs = max(1, estimatedSeconds * 10)
         
         currentSession.durationDeciseconds = durationDs
@@ -218,7 +215,7 @@ struct TimerView: View {
         timeRemaining = max(0, remainingDs)
         
         // popup 3 detik sebelum habis
-        if !popupShownForThisSession, timeRemaining <= 30, timeRemaining > 0 {
+        if !popupShownForThisSession, timeRemaining <= 5, timeRemaining > 0 {
             popupShownForThisSession = true
             showTransitionPopup = true
             transitionTarget = nextSessionTargetPreview()
@@ -255,7 +252,7 @@ struct TimerView: View {
     
     private func nextSessionTargetAfterFinish() -> Session? {
         if currentSession == .focus {
-            if completedFocus + 1 >= totalSession { return nil }
+            if completedFocus + 1 >= config.totalSessions { return nil }
             return .breakSession
         } else {
             return .focus
@@ -271,7 +268,7 @@ struct TimerView: View {
         if currentSession == .focus {
             completedFocus += 1
             
-            if completedFocus >= totalSession {
+            if completedFocus >= config.totalSessions {
                 finishedAll = true
                 transitionTarget = nil
                 showTransitionPopup = true
@@ -317,8 +314,7 @@ struct TimerView: View {
             endDate = nil
         }
     }
-    
-    /// ✅ Tombol kanan: Focus=Reset, Break=Skip Break (confirm)
+
     private func secondaryButtonTapped() {
         if currentSession == .breakSession {
             showSkipBreakConfirm = true
@@ -333,9 +329,8 @@ struct TimerView: View {
         transitionTarget = nil
         finishedAll = false
         
-        let estimatedSeconds = (currentSession == .focus ? focusMinutes : breakMinutes) * 60
+        let estimatedSeconds = (currentSession == .focus ? config.focusSeconds : config.breakSeconds)
         let durationDs = max(1, estimatedSeconds * 10)
-        currentSession.durationDeciseconds = durationDs
         
         timeRemaining = durationDs
         endDate = nil
@@ -374,9 +369,11 @@ struct TimerView: View {
         currentSessionLogId = log.id
     }
     
-    private func finalizeCurrentSessionLog(endAt: Date = Date(),
-                                           markAsReset: Bool = false,
-                                           markAsSkipped: Bool = false) {
+    private func finalizeCurrentSessionLog(
+        endAt: Date = Date(),
+        markAsReset: Bool = false,
+        markAsSkipped: Bool = false
+    ) {
         guard let id = currentSessionLogId else { return }
         guard let log = sessionLogs.first(where: { $0.id == id }) else { return }
         
